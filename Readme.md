@@ -27,7 +27,7 @@ pip install cryptography
 Clone the repository to your local machine:
 
 ```bash
-git clone https://github.com/your-username/SelfSignedCertGenerator.git
+git clone https://github.com/knziiy/SelfSignedCertGenerator.git
 cd SelfSignedCertGenerator
 ```
 
