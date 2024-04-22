@@ -1,6 +1,6 @@
 # SelfSignedCertGenerator
 
-SelfSignedCertGenerator is a Python tool designed to automate the generation of self-signed Certificate Authorities (CAs) and server certificates. This tool helps developers quickly create CA certificates, server certificates, corresponding private keys, and Certificate Signing Requests (CSRs) for testing and development purposes.
+Quickly and simply generate your own CA and self-signed certificates with SelfSignedCertGenerator. This tool helps developers create CA certificates, server certificates, corresponding private keys, and Certificate Signing Requests (CSRs) for testing and development purposes.
 
 ## Features
 
