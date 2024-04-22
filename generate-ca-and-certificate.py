@@ -42,7 +42,7 @@ def create_ca():
 
     return ca_private_key, ca_cert
 
-def create_server_certificate(cn, ca_cert, ca_private_key):
+def create_server_certificate(cn, sans, ca_cert, ca_private_key):
     server_private_key = rsa.generate_private_key(
         public_exponent=65537,
         key_size=4096,
@@ -56,7 +56,12 @@ def create_server_certificate(cn, ca_cert, ca_private_key):
         x509.NameAttribute(NameOID.LOCALITY_NAME, "Minato"),
         x509.NameAttribute(NameOID.ORGANIZATION_NAME, "My Server Organization"),
         x509.NameAttribute(NameOID.COMMON_NAME, cn),
-    ])).sign(server_private_key, hashes.SHA256(), default_backend())
+    ])).add_extension(
+        x509.SubjectAlternativeName([
+            x509.DNSName(san) for san in sans
+        ]),
+        critical=False
+    ).sign(server_private_key, hashes.SHA256(), default_backend())
 
     server_cert = x509.CertificateBuilder().subject_name(
         csr.subject
@@ -70,6 +75,11 @@ def create_server_certificate(cn, ca_cert, ca_private_key):
         now
     ).not_valid_after(
         now + timedelta(days=365)
+    ).add_extension(
+        x509.SubjectAlternativeName([
+            x509.DNSName(san) for san in sans
+        ]),
+        critical=False
     ).add_extension(
         x509.BasicConstraints(ca=False, path_length=None), critical=True,
     ).sign(ca_private_key, hashes.SHA256(), default_backend())
@@ -93,20 +103,21 @@ def save_pem(dir_path, file_name, data):
             f.write(data.public_bytes(Encoding.PEM))
     print(f"File saved: {file_path}")
 
-def main(cn):
-    dir_path = cn
+def main(cn, sans):
+    dir_path = cn  # ディレクトリ名をCNに基づいて設定
     ca_private_key, ca_cert = create_ca()
     save_pem(dir_path, "ca_private_key.pem", ca_private_key)
     save_pem(dir_path, "ca_certificate.pem", ca_cert)
 
-    server_private_key, server_cert, csr = create_server_certificate(cn, ca_cert, ca_private_key)
+    server_private_key, server_cert, csr = create_server_certificate(cn, sans, ca_cert, ca_private_key)
     save_pem(dir_path, "server_private_key.pem", server_private_key)
     save_pem(dir_path, "server_certificate.pem", server_cert)
     save_pem(dir_path, "server_csr.pem", csr)
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print("Usage: python script.py <common_name>")
+    if len(sys.argv) < 3:
+        print("Usage: python script.py <common_name> <san1> <san2> ...")
         sys.exit(1)
     cn = sys.argv[1]
-    main(cn)
+    sans = sys.argv[2:]
+    main(cn, sans)

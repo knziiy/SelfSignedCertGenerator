@@ -1,14 +1,14 @@
 # SelfSignedCertGenerator
 
-Quickly and simply generate your own CA and self-signed certificates with SelfSignedCertGenerator. This tool helps developers create CA certificates, server certificates, corresponding private keys, and Certificate Signing Requests (CSRs) for testing and development purposes.
+Quickly and simply generate your own CA and self-signed certificates with SelfSignedCertGenerator. This tool helps developers create CA certificates, server certificates, corresponding private keys, and Certificate Signing Requests (CSRs) for testing and development purposes, with support for Subject Alternative Names (SAN).
 
 ## Features
 
 - Generates a self-signed CA certificate.
 - Uses the CA to sign server certificates.
 - Creates corresponding private keys for the CA and server certificates.
-- Generates a CSR for the server certificate.
-- Easy to use with command line arguments for flexible certificate details.
+- Generates a CSR for the server certificate, including SANs.
+- Easy to use with command line arguments for flexible certificate details, including multiple SAN entries.
 
 ## Customization
 
@@ -33,29 +33,29 @@ cd SelfSignedCertGenerator
 
 ## Usage
 
-Run the script from the command line, specifying the common name (CN) for the server certificate:
+Run the script from the command line, specifying the common name (CN) for the server certificate and any desired Subject Alternative Names (SANs):
 
 ```bash
-python generate-ca-and-certificate.py <common_name>
+python generate-ca-and-certificate.py <common_name> <san1> <san2> ...
 ```
 
-For example, to generate certificates for `example.com`:
+For example, to generate certificates for `example.com` with additional SANs for `www.example.com` and `api.example.com`:
 
 ```bash
-python generate-ca-and-certificate.py example.com
+python generate-ca-and-certificate.py example.com www.example.com api.example.com
 ```
 
-This command will create a directory named after the CN, where all generated files (CA certificate, server certificate, private keys, and CSR) will be stored.
+This command will create a directory named after the CN, where all generated files (CA certificate, server certificate, private keys, and CSR) will be stored. The server certificate will include the specified SANs.
 
 ## Output
 
 The following files will be generated in a directory named after your specified common name:
 
 - `ca_certificate.pem` - The self-signed CA certificate.
-- `server_certificate.pem` - The server certificate signed by your CA.
+- `server_certificate.pem` - The server certificate signed by your CA, including all specified SANs.
 - `ca_private_key.pem` - Private key for the CA.
 - `server_private_key.pem` - Private key for the server certificate.
-- `server_csr.pem` - Certificate Signing Request for the server certificate.
+- `server_csr.pem` - Certificate Signing Request for the server certificate, including SANs.
 
 ## License
 
