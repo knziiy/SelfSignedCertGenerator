@@ -7,8 +7,9 @@ from cryptography.hazmat.primitives.serialization import Encoding, PrivateFormat
 from cryptography.hazmat.backends import default_backend
 from datetime import datetime, timedelta, timezone
 import os
+import argparse
 
-def create_ca():
+def create_ca(validity_days):
     ca_private_key = rsa.generate_private_key(
         public_exponent=65537,
         key_size=4096,
@@ -34,7 +35,7 @@ def create_ca():
     ).not_valid_before(
         now
     ).not_valid_after(
-        now + timedelta(days=365)
+        now + timedelta(days=validity_days)
     ).add_extension(
         x509.BasicConstraints(ca=True, path_length=None),
         critical=True,
@@ -42,7 +43,7 @@ def create_ca():
 
     return ca_private_key, ca_cert
 
-def create_server_certificate(cn, sans, ca_cert, ca_private_key):
+def create_server_certificate(cn, sans, ca_cert, ca_private_key, validity_days):
     server_private_key = rsa.generate_private_key(
         public_exponent=65537,
         key_size=4096,
@@ -50,20 +51,23 @@ def create_server_certificate(cn, sans, ca_cert, ca_private_key):
     )
 
     now = datetime.now(timezone.utc)
-    csr = x509.CertificateSigningRequestBuilder().subject_name(x509.Name([
+    csr_builder = x509.CertificateSigningRequestBuilder().subject_name(x509.Name([
         x509.NameAttribute(NameOID.COUNTRY_NAME, "JP"),
         x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, "Tokyo"),
         x509.NameAttribute(NameOID.LOCALITY_NAME, "Minato"),
         x509.NameAttribute(NameOID.ORGANIZATION_NAME, "My Server Organization"),
         x509.NameAttribute(NameOID.COMMON_NAME, cn),
-    ])).add_extension(
-        x509.SubjectAlternativeName([
-            x509.DNSName(san) for san in sans
-        ]),
-        critical=False
-    ).sign(server_private_key, hashes.SHA256(), default_backend())
+    ]))
 
-    server_cert = x509.CertificateBuilder().subject_name(
+    if sans:
+        csr_builder = csr_builder.add_extension(
+            x509.SubjectAlternativeName([x509.DNSName(san) for san in sans]),
+            critical=False
+        )
+
+    csr = csr_builder.sign(server_private_key, hashes.SHA256(), default_backend())
+
+    cert_builder = x509.CertificateBuilder().subject_name(
         csr.subject
     ).issuer_name(
         ca_cert.subject
@@ -74,15 +78,18 @@ def create_server_certificate(cn, sans, ca_cert, ca_private_key):
     ).not_valid_before(
         now
     ).not_valid_after(
-        now + timedelta(days=365)
-    ).add_extension(
-        x509.SubjectAlternativeName([
-            x509.DNSName(san) for san in sans
-        ]),
-        critical=False
+        now + timedelta(days=validity_days)
     ).add_extension(
         x509.BasicConstraints(ca=False, path_length=None), critical=True,
-    ).sign(ca_private_key, hashes.SHA256(), default_backend())
+    )
+
+    if sans:
+        cert_builder = cert_builder.add_extension(
+            x509.SubjectAlternativeName([x509.DNSName(san) for san in sans]),
+            critical=False
+        )
+
+    server_cert = cert_builder.sign(ca_private_key, hashes.SHA256(), default_backend())
 
     return server_private_key, server_cert, csr
 
@@ -103,21 +110,22 @@ def save_pem(dir_path, file_name, data):
             f.write(data.public_bytes(Encoding.PEM))
     print(f"File saved: {file_path}")
 
-def main(cn, sans):
+def main(cn, sans, validity_days):
     dir_path = cn  # ディレクトリ名をCNに基づいて設定
-    ca_private_key, ca_cert = create_ca()
+    ca_private_key, ca_cert = create_ca(validity_days)
     save_pem(dir_path, "ca_private_key.pem", ca_private_key)
     save_pem(dir_path, "ca_certificate.pem", ca_cert)
 
-    server_private_key, server_cert, csr = create_server_certificate(cn, sans, ca_cert, ca_private_key)
+    server_private_key, server_cert, csr = create_server_certificate(cn, sans, ca_cert, ca_private_key, validity_days)
     save_pem(dir_path, "server_private_key.pem", server_private_key)
     save_pem(dir_path, "server_certificate.pem", server_cert)
     save_pem(dir_path, "server_csr.pem", csr)
 
 if __name__ == "__main__":
-    if len(sys.argv) < 3:
-        print("Usage: python script.py <common_name> <san1> <san2> ...")
-        sys.exit(1)
-    cn = sys.argv[1]
-    sans = sys.argv[2:]
-    main(cn, sans)
+    parser = argparse.ArgumentParser(description="Generate a CA and server certificate.")
+    parser.add_argument("--cn", type=str, required=True, help="Common Name for the server certificate")
+    parser.add_argument("--sans", nargs='*', type=str, help="Subject Alternative Names for the server certificate")
+    parser.add_argument("--days", type=int, default=365, help="Validity period of the certificates in days (default: 365)")
+
+    args = parser.parse_args()
+    main(args.cn, args.sans, args.days)

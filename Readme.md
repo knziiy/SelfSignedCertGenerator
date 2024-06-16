@@ -7,12 +7,12 @@ Quickly and simply generate your own CA and self-signed certificates with SelfSi
 - Generates a self-signed CA certificate.
 - Uses the CA to sign server certificates.
 - Creates corresponding private keys for the CA and server certificates.
-- Generates a CSR for the server certificate, including SANs.
+- Generates a CSR for the server certificate, including optional SANs.
 - Easy to use with command line arguments for flexible certificate details, including multiple SAN entries.
 
 ## Customization
 
-The script includes hardcoded values for certificate attributes such as COUNTRY_NAME, STATE_OR_PROVINCE_NAME, and others. If you need to change these values, you will need to modify the source code accordingly. Additionally, the default validity period for the CA and server certificates is set to 365 days, but this can be adjusted in the code as needed.
+The script includes hardcoded values for certificate attributes such as COUNTRY_NAME, STATE_OR_PROVINCE_NAME, and others. If you need to change these values, you will need to modify the source code accordingly. Additionally, the default validity period for the CA and server certificates is set to 365 days, but this can be adjusted via the command line arguments.
 
 ## Prerequisites
 
@@ -36,16 +36,22 @@ cd SelfSignedCertGenerator
 Run the script from the command line, specifying the common name (CN) for the server certificate and any desired Subject Alternative Names (SANs):
 
 ```bash
-python generate-ca-and-certificate.py <common_name> <san1> <san2> ...
+python generate-ca-and-certificate.py --cn <common_name> [--sans <san1> <san2> ...] [--days <validity_days>]
 ```
 
 For example, to generate certificates for `example.com` with additional SANs for `www.example.com` and `api.example.com`:
 
 ```bash
-python generate-ca-and-certificate.py example.com www.example.com api.example.com
+python generate-ca-and-certificate.py --cn example.com --sans www.example.com api.example.com --days 730
 ```
 
-This command will create a directory named after the CN, where all generated files (CA certificate, server certificate, private keys, and CSR) will be stored. The server certificate will include the specified SANs.
+If you only want to specify the common name without any SANs:
+
+```bash
+python generate-ca-and-certificate.py --cn example.com --days 730
+```
+
+This command will create a directory named after the CN, where all generated files (CA certificate, server certificate, private keys, and CSR) will be stored. The server certificate will include the specified SANs if provided.
 
 ## Output
 
@@ -55,7 +61,7 @@ The following files will be generated in a directory named after your specified 
 - `server_certificate.pem` - The server certificate signed by your CA, including all specified SANs.
 - `ca_private_key.pem` - Private key for the CA.
 - `server_private_key.pem` - Private key for the server certificate.
-- `server_csr.pem` - Certificate Signing Request for the server certificate, including SANs.
+- `server_csr.pem` - Certificate Signing Request for the server certificate, including SANs if specified.
 
 ## License
 
