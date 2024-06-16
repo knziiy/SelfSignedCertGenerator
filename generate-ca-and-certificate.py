@@ -9,10 +9,10 @@ from datetime import datetime, timedelta, timezone
 import os
 import argparse
 
-def create_ca(validity_days):
+def create_ca(validity_days, key_size):
     ca_private_key = rsa.generate_private_key(
         public_exponent=65537,
-        key_size=4096,
+        key_size=key_size,
         backend=default_backend()
     )
 
@@ -43,10 +43,10 @@ def create_ca(validity_days):
 
     return ca_private_key, ca_cert
 
-def create_server_certificate(cn, sans, ca_cert, ca_private_key, validity_days):
+def create_server_certificate(cn, sans, ca_cert, ca_private_key, validity_days, key_size):
     server_private_key = rsa.generate_private_key(
         public_exponent=65537,
-        key_size=4096,
+        key_size=key_size,
         backend=default_backend()
     )
 
@@ -110,13 +110,13 @@ def save_pem(dir_path, file_name, data):
             f.write(data.public_bytes(Encoding.PEM))
     print(f"File saved: {file_path}")
 
-def main(cn, sans, validity_days):
+def main(cn, sans, validity_days, key_size):
     dir_path = cn  # ディレクトリ名をCNに基づいて設定
-    ca_private_key, ca_cert = create_ca(validity_days)
+    ca_private_key, ca_cert = create_ca(validity_days, key_size)
     save_pem(dir_path, "ca_private_key.pem", ca_private_key)
     save_pem(dir_path, "ca_certificate.pem", ca_cert)
 
-    server_private_key, server_cert, csr = create_server_certificate(cn, sans, ca_cert, ca_private_key, validity_days)
+    server_private_key, server_cert, csr = create_server_certificate(cn, sans, ca_cert, ca_private_key, validity_days, key_size)
     save_pem(dir_path, "server_private_key.pem", server_private_key)
     save_pem(dir_path, "server_certificate.pem", server_cert)
     save_pem(dir_path, "server_csr.pem", csr)
@@ -126,6 +126,7 @@ if __name__ == "__main__":
     parser.add_argument("--cn", type=str, required=True, help="Common Name for the server certificate")
     parser.add_argument("--sans", nargs='*', type=str, help="Subject Alternative Names for the server certificate")
     parser.add_argument("--days", type=int, default=365, help="Validity period of the certificates in days (default: 365)")
+    parser.add_argument("--key-size", type=int, default=4096, help="Key size for the RSA keys (default: 4096)")
 
     args = parser.parse_args()
-    main(args.cn, args.sans, args.days)
+    main(args.cn, args.sans, args.days, args.key_size)
